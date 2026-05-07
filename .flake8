@@ -3,9 +3,12 @@ max-line-length = 120
 max-complexity = 15
 exclude =
     .git,
+    .venv,
     __pycache__,
     build,
     dist,
+    env,
+    venv,
     *.egg-info
 ignore =
     # line too long (handled by max-line-length)
