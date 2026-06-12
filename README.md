@@ -25,6 +25,19 @@
 ### Meituan (03690.HK) - Growth Stock Performance
 ![Radical Strategy - Meituan](radical-03690HK.png)
 
+## Evaluation Helpers
+
+The repository includes pure Python helpers for reviewing an equity curve before showing results:
+
+```python
+from strategy_metrics import summarize_equity_curve
+
+summary = summarize_equity_curve([100_000, 103_000, 98_500, 110_000])
+print(summary["total_return"], summary["max_drawdown"], summary["sharpe"])
+```
+
+This keeps headline metrics such as total return, max drawdown, annualized volatility, and Sharpe ratio consistent across the conservative and radical strategies.
+
 ## 📋 Overview
 
 This repository contains two sophisticated algorithmic trading strategies designed for quantitative trading:

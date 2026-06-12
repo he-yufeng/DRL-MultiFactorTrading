@@ -25,6 +25,19 @@
 ### 美团 (03690.HK) - 成长股表现
 ![Radical Strategy - Meituan](radical-03690HK.png)
 
+## 策略评估工具
+
+仓库现在包含一组纯 Python 绩效指标 helper，可在展示回测结果前统一计算核心指标：
+
+```python
+from strategy_metrics import summarize_equity_curve
+
+summary = summarize_equity_curve([100_000, 103_000, 98_500, 110_000])
+print(summary["total_return"], summary["max_drawdown"], summary["sharpe"])
+```
+
+这样保守策略和激进策略都可以用同一套口径输出总收益、最大回撤、年化波动率和 Sharpe ratio，避免 README 图表和代码评估口径脱节。
+
 ## 概览
 
 本仓库包含两套算法交易策略：
