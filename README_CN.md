@@ -36,7 +36,7 @@ summary = summarize_equity_curve([100_000, 103_000, 98_500, 110_000])
 print(summary["total_return"], summary["max_drawdown"], summary["sharpe"])
 ```
 
-这样保守策略和激进策略都可以用同一套口径输出总收益、最大回撤、年化波动率和 Sharpe ratio，避免 README 图表和代码评估口径脱节。
+这样保守策略和激进策略都可以用同一套口径输出总收益、年化收益、最大回撤、年化波动率、下行波动率、Sharpe、Sortino 和 Calmar ratio，避免 README 图表和代码评估口径脱节。
 
 ## 概览
 
