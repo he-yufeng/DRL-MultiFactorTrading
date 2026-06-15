@@ -30,13 +30,15 @@
 The repository includes pure Python helpers for reviewing an equity curve before showing results:
 
 ```python
-from strategy_metrics import summarize_equity_curve
+from strategy_metrics import drawdown_analysis, summarize_equity_curve
 
 summary = summarize_equity_curve([100_000, 103_000, 98_500, 110_000])
+drawdown = drawdown_analysis([100_000, 103_000, 98_500, 110_000])
 print(summary["total_return"], summary["max_drawdown"], summary["sharpe"])
+print(drawdown["drawdown_duration"], drawdown["recovery_duration"])
 ```
 
-This keeps headline metrics such as total return, annualized return, max drawdown, annualized volatility, downside deviation, Sharpe, Sortino, and Calmar ratio consistent across the conservative and radical strategies.
+This keeps headline metrics such as total return, annualized return, max drawdown, drawdown and recovery duration, underwater episodes, Ulcer Index, annualized volatility, downside deviation, Sharpe, Sortino, and Calmar ratio consistent across the conservative and radical strategies.
 
 ## 📋 Overview
 

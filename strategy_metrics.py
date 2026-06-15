@@ -32,6 +32,52 @@ def max_drawdown(equity: Sequence[float]) -> float:
     return float(np.max(drawdowns))
 
 
+def drawdown_analysis(equity: Sequence[float]) -> dict[str, float | int]:
+    """Describe the worst drawdown, recovery path, and underwater severity."""
+    values = np.asarray(equity, dtype=float)
+    if values.ndim != 1:
+        raise ValueError("equity must be a one-dimensional sequence")
+    if len(values) == 0:
+        return {
+            "max_drawdown": 0.0,
+            "peak_index": -1,
+            "trough_index": -1,
+            "recovery_index": -1,
+            "drawdown_duration": 0,
+            "recovery_duration": -1,
+            "underwater_periods": 0,
+            "ulcer_index": 0.0,
+        }
+
+    peaks = np.maximum.accumulate(values)
+    drawdowns = (peaks - values) / np.maximum(np.abs(peaks), 1e-12)
+    trough_index = int(np.argmax(drawdowns))
+    peak_index = int(np.argmax(values[: trough_index + 1]))
+    recovery_index = -1
+    for index in range(trough_index + 1, len(values)):
+        if values[index] >= values[peak_index]:
+            recovery_index = index
+            break
+
+    underwater = drawdowns > 0
+    underwater_periods = int(
+        sum(
+            is_underwater and (index == 0 or not underwater[index - 1])
+            for index, is_underwater in enumerate(underwater)
+        )
+    )
+    return {
+        "max_drawdown": float(drawdowns[trough_index]),
+        "peak_index": peak_index,
+        "trough_index": trough_index,
+        "recovery_index": recovery_index,
+        "drawdown_duration": trough_index - peak_index,
+        "recovery_duration": recovery_index - trough_index if recovery_index >= 0 else -1,
+        "underwater_periods": underwater_periods,
+        "ulcer_index": float(math.sqrt(np.mean(np.square(drawdowns)))),
+    }
+
+
 def annualized_volatility(returns: Sequence[float], periods_per_year: int = 252) -> float:
     """Annualized volatility from simple period returns."""
     if periods_per_year <= 0:
@@ -132,8 +178,13 @@ def summarize_equity_curve(equity: Sequence[float], periods_per_year: int = 252)
             "sharpe": 0.0,
             "sortino": 0.0,
             "calmar": 0.0,
+            "max_drawdown_duration": 0.0,
+            "recovery_duration": -1.0,
+            "underwater_periods": 0.0,
+            "ulcer_index": 0.0,
         }
     rets = returns_from_equity(values)
+    drawdown = drawdown_analysis(values)
     total_return = (values[-1] - values[0]) / max(abs(values[0]), 1e-12)
     return {
         "total_return": float(total_return),
@@ -144,4 +195,8 @@ def summarize_equity_curve(equity: Sequence[float], periods_per_year: int = 252)
         "sharpe": sharpe_ratio(rets, periods_per_year=periods_per_year),
         "sortino": sortino_ratio(rets, periods_per_year=periods_per_year),
         "calmar": calmar_ratio(values, periods_per_year=periods_per_year),
+        "max_drawdown_duration": float(drawdown["drawdown_duration"]),
+        "recovery_duration": float(drawdown["recovery_duration"]),
+        "underwater_periods": float(drawdown["underwater_periods"]),
+        "ulcer_index": float(drawdown["ulcer_index"]),
     }

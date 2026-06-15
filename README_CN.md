@@ -30,13 +30,15 @@
 仓库现在包含一组纯 Python 绩效指标 helper，可在展示回测结果前统一计算核心指标：
 
 ```python
-from strategy_metrics import summarize_equity_curve
+from strategy_metrics import drawdown_analysis, summarize_equity_curve
 
 summary = summarize_equity_curve([100_000, 103_000, 98_500, 110_000])
+drawdown = drawdown_analysis([100_000, 103_000, 98_500, 110_000])
 print(summary["total_return"], summary["max_drawdown"], summary["sharpe"])
+print(drawdown["drawdown_duration"], drawdown["recovery_duration"])
 ```
 
-这样保守策略和激进策略都可以用同一套口径输出总收益、年化收益、最大回撤、年化波动率、下行波动率、Sharpe、Sortino 和 Calmar ratio，避免 README 图表和代码评估口径脱节。
+这样保守策略和激进策略都可以用同一套口径输出总收益、年化收益、最大回撤、回撤与恢复时长、水下阶段、Ulcer Index、年化波动率、下行波动率、Sharpe、Sortino 和 Calmar ratio，避免 README 图表和代码评估口径脱节。
 
 ## 概览
 

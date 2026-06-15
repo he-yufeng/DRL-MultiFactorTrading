@@ -7,6 +7,7 @@ from strategy_metrics import (
     annualized_volatility,
     calmar_ratio,
     downside_deviation,
+    drawdown_analysis,
     max_drawdown,
     returns_from_equity,
     sharpe_ratio,
@@ -22,6 +23,26 @@ def test_returns_from_equity_curve() -> None:
 
 def test_max_drawdown_is_positive_fraction() -> None:
     assert max_drawdown([100.0, 120.0, 90.0, 110.0]) == pytest.approx(0.25)
+
+
+def test_drawdown_analysis_tracks_recovery_and_multiple_episodes() -> None:
+    analysis = drawdown_analysis([100.0, 120.0, 90.0, 120.0, 110.0, 125.0])
+
+    assert analysis["max_drawdown"] == pytest.approx(0.25)
+    assert analysis["peak_index"] == 1
+    assert analysis["trough_index"] == 2
+    assert analysis["recovery_index"] == 3
+    assert analysis["drawdown_duration"] == 1
+    assert analysis["recovery_duration"] == 1
+    assert analysis["underwater_periods"] == 2
+    assert analysis["ulcer_index"] > 0
+
+
+def test_drawdown_analysis_marks_unrecovered_trough() -> None:
+    analysis = drawdown_analysis([100.0, 120.0, 90.0, 100.0])
+
+    assert analysis["recovery_index"] == -1
+    assert analysis["recovery_duration"] == -1
 
 
 def test_volatility_and_sharpe_are_finite() -> None:
@@ -54,6 +75,10 @@ def test_summarize_equity_curve() -> None:
     assert "sharpe" in summary
     assert "sortino" in summary
     assert "calmar" in summary
+    assert summary["max_drawdown_duration"] == 1
+    assert summary["recovery_duration"] == 1
+    assert summary["underwater_periods"] == 1
+    assert summary["ulcer_index"] > 0
 
 
 def test_rejects_multidimensional_equity() -> None:
