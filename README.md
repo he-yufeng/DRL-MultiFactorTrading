@@ -64,6 +64,32 @@ print(report["strategy"]["sharpe"], report["benchmark"]["sharpe"], report["relat
 Beta and alpha fall back to safe values when the benchmark has no variance, and a flat or
 single-point curve returns zeros instead of raising.
 
+### Measuring factor predictive power
+
+Equity-curve metrics only tell you how a strategy did after the fact. Before a factor is
+worth trading it has to predict forward returns, so `factor_analysis` reports the
+information coefficient (IC), its stability over time (ICIR), and the spread between
+factor quantiles:
+
+```python
+from factor_analysis import information_coefficient, summarize_factor, factor_quantile_returns
+
+# One rebalance date: factor exposures across the cross-section vs. next-period returns.
+rank_ic = information_coefficient(factor_today, forward_returns, method="spearman")
+
+# A panel shaped (periods, assets): one row per rebalance date.
+report = summarize_factor(factor_panel, forward_return_panel, method="spearman")
+print(report["mean_ic"], report["ic_ir"], report["hit_rate"], report["t_stat"])
+
+# Sanity-check monotonicity: mean forward return from the lowest to highest factor bucket.
+buckets = factor_quantile_returns(factor_today, forward_returns, quantiles=5)
+print(buckets[-1] - buckets[0])  # top-minus-bottom spread
+```
+
+Rank IC (Spearman) is the default because it is robust to outliers and to monotonic but
+nonlinear relationships. Non-finite pairs are dropped, thin cross-sections are skipped
+rather than reported as zero IC, and degenerate inputs return zeros instead of raising.
+
 ## 📋 Overview
 
 This repository contains two sophisticated algorithmic trading strategies designed for quantitative trading:
