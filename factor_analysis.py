@@ -107,7 +107,7 @@ def factor_ic_series(
     return np.asarray(coefficients, dtype=float)
 
 
-def ic_information_ratio(ic_series: Sequence[float]) -> float:
+def ic_information_ratio(ic_series: Sequence[float] | np.ndarray) -> float:
     """Mean IC divided by its standard deviation (the ICIR), 0.0 when undefined."""
     coefficients = np.asarray(ic_series, dtype=float)
     if coefficients.ndim != 1:
