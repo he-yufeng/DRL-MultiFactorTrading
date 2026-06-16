@@ -40,6 +40,27 @@ print(drawdown["drawdown_duration"], drawdown["recovery_duration"])
 
 这样保守策略和激进策略都可以用同一套口径输出总收益、年化收益、最大回撤、回撤与恢复时长、水下阶段、Ulcer Index、年化波动率、下行波动率、Sharpe、Sortino 和 Calmar ratio，避免 README 图表和代码评估口径脱节。
 
+### 与 buy-and-hold 基准对比
+
+策略真正的价值在于能否跑赢被动持有。`benchmark_comparison` 接收策略和基准两条等长净值曲线，
+输出超额年化收益、信息比率、跟踪误差、beta、CAPM 口径的 alpha，以及策略跑赢基准的周期占比：
+
+```python
+from strategy_metrics import benchmark_comparison, summarize_vs_benchmark
+
+strategy = [100_000, 108_000, 104_000, 119_000]
+buy_and_hold = [100_000, 103_000, 101_000, 106_000]
+
+rel = benchmark_comparison(strategy, buy_and_hold)
+print(rel["excess_annualized_return"], rel["information_ratio"], rel["beta"], rel["alpha"])
+
+# 策略、基准、相对指标三段一起返回，方便并排出表。
+report = summarize_vs_benchmark(strategy, buy_and_hold)
+print(report["strategy"]["sharpe"], report["benchmark"]["sharpe"], report["relative"]["win_rate"])
+```
+
+基准没有波动时 beta、alpha 会退回安全取值，曲线过短或全平则返回全零而不会抛异常。
+
 ## 概览
 
 本仓库包含两套算法交易策略：

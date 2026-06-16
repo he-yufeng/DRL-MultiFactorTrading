@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from strategy_metrics import (
     annualized_return,
     annualized_volatility,
+    benchmark_comparison,
     calmar_ratio,
     downside_deviation,
     drawdown_analysis,
@@ -12,6 +14,7 @@ from strategy_metrics import (
     returns_from_equity,
     sharpe_ratio,
     summarize_equity_curve,
+    summarize_vs_benchmark,
 )
 
 
@@ -87,3 +90,88 @@ def test_rejects_multidimensional_equity() -> None:
 
     with pytest.raises(ValueError, match="one-dimensional"):
         summarize_equity_curve([[100.0, 101.0]])
+
+
+def test_benchmark_comparison_recovers_known_beta_and_alpha() -> None:
+    # Strategy return is 2x the benchmark every period plus a steady 1% edge.
+    benchmark = [100.0, 105.0, 99.75, 109.725]
+    strategy = [100.0, 111.0, 101.01, 122.2221]
+
+    result = benchmark_comparison(strategy, benchmark, periods_per_year=1)
+
+    assert result["beta"] == pytest.approx(2.0)
+    assert result["alpha"] == pytest.approx(0.01)
+    assert result["win_rate"] == pytest.approx(2 / 3)
+    assert result["excess_annualized_return"] > 0
+
+
+def test_benchmark_comparison_pure_leverage_has_no_alpha() -> None:
+    benchmark = [100.0, 105.0, 99.75, 109.725]
+    strategy = [100.0, 110.0, 99.0, 118.8]
+
+    result = benchmark_comparison(strategy, benchmark, periods_per_year=1)
+
+    assert result["beta"] == pytest.approx(2.0)
+    assert result["alpha"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_benchmark_comparison_information_ratio_and_tracking_error() -> None:
+    # Active return is [-1%, +1%, +3%]: mean 1%, sample std 2%.
+    benchmark = [100.0, 102.0, 103.02, 100.9596]
+    strategy = [100.0, 101.0, 103.02, 104.0502]
+
+    result = benchmark_comparison(strategy, benchmark, periods_per_year=1)
+
+    assert result["tracking_error"] == pytest.approx(0.02)
+    assert result["information_ratio"] == pytest.approx(0.5)
+    assert result["win_rate"] == pytest.approx(2 / 3)
+
+
+def test_benchmark_comparison_identical_curves() -> None:
+    curve = [100.0, 110.0, 99.0, 105.0]
+
+    result = benchmark_comparison(curve, curve)
+
+    assert result["beta"] == pytest.approx(1.0)
+    assert result["alpha"] == pytest.approx(0.0)
+    assert result["excess_annualized_return"] == pytest.approx(0.0)
+    assert result["information_ratio"] == 0.0
+    assert result["tracking_error"] == 0.0
+    assert result["win_rate"] == 0.0
+
+
+def test_benchmark_comparison_handles_flat_benchmark() -> None:
+    result = benchmark_comparison([100.0, 105.0, 103.0], [100.0, 100.0, 100.0])
+
+    assert result["beta"] == 0.0
+    assert all(np.isfinite(value) for value in result.values())
+
+
+def test_benchmark_comparison_validates_inputs() -> None:
+    with pytest.raises(ValueError, match="same length"):
+        benchmark_comparison([100.0, 101.0, 102.0], [100.0, 101.0])
+
+    with pytest.raises(ValueError, match="one-dimensional"):
+        benchmark_comparison([[100.0, 101.0]], [[100.0, 101.0]])
+
+    empty = benchmark_comparison([100.0], [100.0])
+    assert empty == {
+        "excess_annualized_return": 0.0,
+        "information_ratio": 0.0,
+        "tracking_error": 0.0,
+        "beta": 0.0,
+        "alpha": 0.0,
+        "win_rate": 0.0,
+    }
+
+
+def test_summarize_vs_benchmark_bundles_sections() -> None:
+    strategy = [100.0, 108.0, 104.0, 119.0]
+    benchmark = [100.0, 103.0, 101.0, 106.0]
+
+    summary = summarize_vs_benchmark(strategy, benchmark)
+
+    assert set(summary) == {"strategy", "benchmark", "relative"}
+    assert summary["strategy"]["total_return"] > summary["benchmark"]["total_return"]
+    assert summary["relative"]["win_rate"] > 0
+    assert summary["relative"]["excess_annualized_return"] > 0

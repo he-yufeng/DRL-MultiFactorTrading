@@ -200,3 +200,76 @@ def summarize_equity_curve(equity: Sequence[float], periods_per_year: int = 252)
         "underwater_periods": float(drawdown["underwater_periods"]),
         "ulcer_index": float(drawdown["ulcer_index"]),
     }
+
+
+def benchmark_comparison(
+    strategy_equity: Sequence[float],
+    benchmark_equity: Sequence[float],
+    periods_per_year: int = 252,
+) -> dict[str, float]:
+    """Compare a strategy equity curve against a benchmark such as buy-and-hold.
+
+    ``win_rate`` is the fraction of periods the strategy return strictly beats
+    the benchmark; ``alpha`` and ``excess_annualized_return`` are annualized.
+    """
+    if periods_per_year <= 0:
+        raise ValueError("periods_per_year must be positive")
+    strategy = np.asarray(strategy_equity, dtype=float)
+    benchmark = np.asarray(benchmark_equity, dtype=float)
+    if strategy.ndim != 1 or benchmark.ndim != 1:
+        raise ValueError("equity curves must be one-dimensional sequences")
+    if len(strategy) != len(benchmark):
+        raise ValueError("strategy and benchmark must be the same length")
+
+    if len(strategy) < 2:
+        return {
+            "excess_annualized_return": 0.0,
+            "information_ratio": 0.0,
+            "tracking_error": 0.0,
+            "beta": 0.0,
+            "alpha": 0.0,
+            "win_rate": 0.0,
+        }
+
+    strategy_returns = returns_from_equity(strategy)
+    benchmark_returns = returns_from_equity(benchmark)
+    active = strategy_returns - benchmark_returns
+
+    tracking_error = annualized_volatility(active, periods_per_year)
+    information_ratio = (
+        float(np.mean(active) * periods_per_year / tracking_error)
+        if tracking_error > 0
+        else 0.0
+    )
+
+    if strategy_returns.size < 2 or np.var(benchmark_returns, ddof=1) == 0:
+        beta = 0.0
+    else:
+        covariance = np.cov(strategy_returns, benchmark_returns, ddof=1)[0, 1]
+        beta = float(covariance / np.var(benchmark_returns, ddof=1))
+    alpha = float(
+        (np.mean(strategy_returns) - beta * np.mean(benchmark_returns)) * periods_per_year
+    )
+
+    return {
+        "excess_annualized_return": annualized_return(strategy, periods_per_year)
+        - annualized_return(benchmark, periods_per_year),
+        "information_ratio": information_ratio,
+        "tracking_error": tracking_error,
+        "beta": beta,
+        "alpha": alpha,
+        "win_rate": float(np.mean(strategy_returns > benchmark_returns)),
+    }
+
+
+def summarize_vs_benchmark(
+    strategy_equity: Sequence[float],
+    benchmark_equity: Sequence[float],
+    periods_per_year: int = 252,
+) -> dict[str, dict[str, float]]:
+    """Headline metrics for the strategy and benchmark plus their relative comparison."""
+    return {
+        "strategy": summarize_equity_curve(strategy_equity, periods_per_year),
+        "benchmark": summarize_equity_curve(benchmark_equity, periods_per_year),
+        "relative": benchmark_comparison(strategy_equity, benchmark_equity, periods_per_year),
+    }

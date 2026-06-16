@@ -40,6 +40,30 @@ print(drawdown["drawdown_duration"], drawdown["recovery_duration"])
 
 This keeps headline metrics such as total return, annualized return, max drawdown, drawdown and recovery duration, underwater episodes, Ulcer Index, annualized volatility, downside deviation, Sharpe, Sortino, and Calmar ratio consistent across the conservative and radical strategies.
 
+### Benchmarking against buy-and-hold
+
+A trading strategy is only worth running if it beats a passive hold. `benchmark_comparison`
+takes the strategy and benchmark equity curves (same length) and reports excess annualized
+return, information ratio, tracking error, beta, CAPM-style alpha, and the fraction of periods
+the strategy beats the benchmark:
+
+```python
+from strategy_metrics import benchmark_comparison, summarize_vs_benchmark
+
+strategy = [100_000, 108_000, 104_000, 119_000]
+buy_and_hold = [100_000, 103_000, 101_000, 106_000]
+
+rel = benchmark_comparison(strategy, buy_and_hold)
+print(rel["excess_annualized_return"], rel["information_ratio"], rel["beta"], rel["alpha"])
+
+# Strategy, benchmark, and relative metrics in one bundle for a side-by-side table.
+report = summarize_vs_benchmark(strategy, buy_and_hold)
+print(report["strategy"]["sharpe"], report["benchmark"]["sharpe"], report["relative"]["win_rate"])
+```
+
+Beta and alpha fall back to safe values when the benchmark has no variance, and a flat or
+single-point curve returns zeros instead of raising.
+
 ## 📋 Overview
 
 This repository contains two sophisticated algorithmic trading strategies designed for quantitative trading:
