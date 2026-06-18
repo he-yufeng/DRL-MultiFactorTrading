@@ -52,35 +52,6 @@ def run_backtest(
     return BacktestEngine(initial_capital).run(algo, bars)
 
 
-def run_best(
-    strategy: str,
-    bars: list[Bar],
-    *,
-    runs: int = 1,
-    metric: str = "sharpe",
-    initial_capital: float = 100_000_000.0,
-) -> tuple[BacktestResult, list[float]]:
-    """Run a (possibly stochastic) strategy ``runs`` times and keep the best.
-
-    The Radical agent uses ``np.random`` for experience replay and exploration,
-    so each run differs. Seeding per run keeps every run reproducible while the
-    seed varies, and the run with the highest ``metric`` is returned along with
-    the per-run scores so callers can see the spread.
-    """
-    best_result: BacktestResult | None = None
-    best_score = float("-inf")
-    scores: list[float] = []
-    for seed in range(runs):
-        np.random.seed(seed)
-        result = run_backtest(strategy, bars, initial_capital=initial_capital)
-        score = float(result.metrics.get(metric, float("-inf")))
-        scores.append(score)
-        if score > best_score:
-            best_result, best_score = result, score
-    assert best_result is not None
-    return best_result, scores
-
-
 def run_ensemble(
     bars: list[Bar],
     *,
@@ -170,13 +141,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--csv", help="Path to an OHLCV CSV (close/high/low/volume columns).")
     parser.add_argument("--ticker", help="Fetch real data via yfinance, e.g. 0700.HK.")
     parser.add_argument("--capital", type=float, default=100_000_000.0)
-    parser.add_argument(
-        "--runs", type=int, default=None,
-        help="Run a stochastic strategy N times and report only the best by "
-             "--metric. Defaults to 30 for the Radical agent (its replay and "
-             "exploration are random, so a single run is noisy), 1 otherwise.",
-    )
-    parser.add_argument("--metric", default="sharpe", help="Metric to rank runs by (--runs > 1).")
     return parser.parse_args(argv)
 
 
@@ -192,18 +156,9 @@ def main(argv: list[str] | None = None) -> None:
         bars = synthetic_bars()
         source = "synthetic"
 
-    # The Radical agent is stochastic (random replay + epsilon-greedy), so a
-    # single run is noisy; default it to best-of-30 and report only the best.
-    runs = args.runs if args.runs is not None else (30 if args.strategy == "radical" else 1)
-
     subs: dict[str, BacktestResult] = {}
-    scores: list[float] = []
     if args.strategy == "ensemble":
         result, subs = run_ensemble(bars, initial_capital=args.capital)
-    elif runs > 1:
-        result, scores = run_best(
-            args.strategy, bars, runs=runs, metric=args.metric, initial_capital=args.capital
-        )
     else:
         result = run_backtest(args.strategy, bars, initial_capital=args.capital)
 
@@ -214,12 +169,6 @@ def main(argv: list[str] | None = None) -> None:
             sharpe = res.metrics.get("sharpe", float("nan"))
             ret = res.metrics.get("total_return", float("nan"))
             print(f"  - {name:13s}: return {ret:+.4f}  sharpe {sharpe:+.4f}  trades {res.trades}")
-    if scores:
-        best = max(scores)
-        worst = min(scores)
-        mean = sum(scores) / len(scores)
-        print(f"Runs     : {len(scores)} (best {args.metric} {best:+.4f}, "
-              f"mean {mean:+.4f}, worst {worst:+.4f})")
     print(f"Trades   : {result.trades}")
     for key, value in result.metrics.items():
         print(f"{key:24s}: {value:.4f}")

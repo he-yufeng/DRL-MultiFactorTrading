@@ -214,7 +214,7 @@ needed — just feed it OHLCV bars:
 
 ```bash
 python backtest.py                       # Conservative on synthetic data
-python backtest.py --strategy radical    # Radical (best-of-30, see below)
+python backtest.py --strategy radical    # Radical (numpy Double-DQN)
 python backtest.py --strategy ensemble   # 50/50 portfolio of both strategies
 python backtest.py --csv prices.csv      # your own OHLCV CSV (close/high/low/volume)
 python backtest.py --ticker 1810.HK      # real data via yfinance (pip install yfinance)
@@ -230,27 +230,6 @@ Trades   : 57
 total_return            : 0.2606
 sharpe                  : 1.7380
 max_drawdown            : 0.0585
-```
-
-### Best-of-N for the stochastic agent
-
-The Radical agent uses random experience replay and ε-greedy exploration, so a
-single run is noisy — the same data can land anywhere from a great run to a poor
-one. `--runs N` runs it `N` times (each seeded for reproducibility) and reports
-**only the best** by `--metric` (Sharpe by default), along with the spread so you
-can see the variance. Because of this, `--strategy radical` defaults to
-best-of-30; pass `--runs 1` for a single raw run.
-
-```bash
-python backtest.py --strategy radical --ticker 1810.HK            # best of 30
-python backtest.py --strategy radical --runs 50 --metric total_return --ticker 1810.HK
-```
-
-```
-Strategy : radical
-Runs     : 30 (best sharpe +1.2203, mean -0.1099, worst -1.6689)
-total_return            : 0.2239
-sharpe                  : 1.2203
 ```
 
 ### Ensemble portfolio
@@ -280,8 +259,7 @@ bars = backtest.synthetic_bars(n=400)            # or backtest.csv_bars("prices.
 result = backtest.run_backtest("conservative", bars)
 print(result.trades, result.metrics["sharpe"])
 
-# best-of-N for the stochastic agent, and the combined portfolio
-best, scores = backtest.run_best("radical", bars, runs=30, metric="sharpe")
+# the combined portfolio of both strategies
 portfolio, legs = backtest.run_ensemble(bars, weights={"conservative": 0.5, "radical": 0.5})
 
 # or drive a strategy instance directly
