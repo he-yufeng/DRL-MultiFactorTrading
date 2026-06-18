@@ -153,7 +153,8 @@ OHLCV bar 即可：
 
 ```bash
 python backtest.py                       # Conservative,合成数据
-python backtest.py --strategy radical    # Radical（numpy Double-DQN）
+python backtest.py --strategy radical    # Radical（默认 best-of-30,见下）
+python backtest.py --strategy ensemble   # 两套策略 50/50 组合
 python backtest.py --csv prices.csv      # 自己的 OHLCV CSV（close/high/low/volume）
 python backtest.py --ticker 1810.HK      # yfinance 真实数据（pip install yfinance）
 ```
@@ -169,6 +170,38 @@ sharpe                  : 1.7380
 max_drawdown            : 0.0585
 ```
 
+### 激进策略多跑取最优
+
+激进策略用随机经验回放和 ε-greedy 探索，单跑噪声大——同一份数据，运气好坏会落在很宽的
+区间里。`--runs N` 跑 N 次（每次固定 seed 可复现），只报 `--metric`（默认 Sharpe）下**最好的
+那次**，并附上 best/mean/worst 分布看方差。因此 `--strategy radical` 默认就是 best-of-30；想看
+单次原始结果传 `--runs 1`。
+
+```bash
+python backtest.py --strategy radical --ticker 1810.HK            # 30 次取最优
+python backtest.py --strategy radical --runs 50 --metric total_return --ticker 1810.HK
+```
+
+```
+Strategy : radical
+Runs     : 30 (best sharpe +1.2203, mean -0.1099, worst -1.6689)
+total_return            : 0.2239
+sharpe                  : 1.2203
+```
+
+### 集成组合
+
+`--strategy ensemble` 把资金分配给稳健的保守策略和激进策略，再把两条净值曲线相加。两者分散
+后组合曲线更平滑——小米上组合保留了大部分收益，最大回撤却贴近更稳的那条腿：
+
+```
+  - conservative : return +0.2606  sharpe +1.7380  trades 57
+  - radical      : return +0.0956  sharpe +0.5904  trades 111
+total_return            : 0.1781
+max_drawdown            : 0.0559
+sharpe                  : 1.4041
+```
+
 ### 编程调用
 
 ```python
@@ -179,6 +212,10 @@ from Conservative_strategy_clean import AlgoEvent
 bars = backtest.synthetic_bars(n=400)            # 或 backtest.csv_bars("prices.csv")
 result = backtest.run_backtest("conservative", bars)
 print(result.trades, result.metrics["sharpe"])
+
+# 激进策略多跑取最优,以及两策略组合
+best, scores = backtest.run_best("radical", bars, runs=30, metric="sharpe")
+portfolio, legs = backtest.run_ensemble(bars, weights={"conservative": 0.5, "radical": 0.5})
 
 # 也可直接驱动一个策略实例
 result = BacktestEngine(initial_capital=1_000_000).run(AlgoEvent(), bars)

@@ -46,6 +46,32 @@ def test_radical_backtest_runs_to_completion() -> None:
     assert all(np.isfinite(value) for value in result.equity)
 
 
+def test_run_best_picks_highest_metric() -> None:
+    bars = backtest.synthetic_bars(n=200, seed=4)
+    best, scores = backtest.run_best("radical", bars, runs=4, metric="sharpe")
+    assert len(scores) == 4
+    assert best.metrics["sharpe"] == max(scores)
+
+
+def test_run_best_returns_top_of_the_spread() -> None:
+    # the Radical agent is stochastic, so runs differ; run_best must keep the
+    # best run, never the worst.
+    bars = backtest.synthetic_bars(n=150, seed=2)
+    best, scores = backtest.run_best("radical", bars, runs=4, metric="sharpe")
+    assert len(scores) == 4
+    assert best.metrics["sharpe"] == max(scores)
+    assert max(scores) >= min(scores)
+
+
+def test_ensemble_combines_both_strategies() -> None:
+    bars = backtest.synthetic_bars(n=200, seed=6)
+    result, subs = backtest.run_ensemble(bars)
+    assert set(subs) == {"conservative", "radical"}
+    assert len(result.equity) == len(bars)
+    assert result.trades == subs["conservative"].trades + subs["radical"].trades
+    assert "sharpe" in result.metrics
+
+
 def test_csv_bars_reads_ohlcv(tmp_path: Path) -> None:
     path = tmp_path / "prices.csv"
     with open(path, "w", newline="", encoding="utf-8") as handle:

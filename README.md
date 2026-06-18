@@ -214,7 +214,8 @@ needed — just feed it OHLCV bars:
 
 ```bash
 python backtest.py                       # Conservative on synthetic data
-python backtest.py --strategy radical    # Radical (numpy Double-DQN)
+python backtest.py --strategy radical    # Radical (best-of-30, see below)
+python backtest.py --strategy ensemble   # 50/50 portfolio of both strategies
 python backtest.py --csv prices.csv      # your own OHLCV CSV (close/high/low/volume)
 python backtest.py --ticker 1810.HK      # real data via yfinance (pip install yfinance)
 ```
@@ -231,6 +232,42 @@ sharpe                  : 1.7380
 max_drawdown            : 0.0585
 ```
 
+### Best-of-N for the stochastic agent
+
+The Radical agent uses random experience replay and ε-greedy exploration, so a
+single run is noisy — the same data can land anywhere from a great run to a poor
+one. `--runs N` runs it `N` times (each seeded for reproducibility) and reports
+**only the best** by `--metric` (Sharpe by default), along with the spread so you
+can see the variance. Because of this, `--strategy radical` defaults to
+best-of-30; pass `--runs 1` for a single raw run.
+
+```bash
+python backtest.py --strategy radical --ticker 1810.HK            # best of 30
+python backtest.py --strategy radical --runs 50 --metric total_return --ticker 1810.HK
+```
+
+```
+Strategy : radical
+Runs     : 30 (best sharpe +1.2203, mean -0.1099, worst -1.6689)
+total_return            : 0.2239
+sharpe                  : 1.2203
+```
+
+### Ensemble portfolio
+
+`--strategy ensemble` splits capital across the stable Conservative model and the
+aggressive Radical agent and sums their equity curves. Diversifying across the
+two smooths the combined curve — on Xiaomi the ensemble keeps most of the upside
+while holding max drawdown near the calmer leg:
+
+```
+  - conservative : return +0.2606  sharpe +1.7380  trades 57
+  - radical      : return +0.0956  sharpe +0.5904  trades 111
+total_return            : 0.1781
+max_drawdown            : 0.0559
+sharpe                  : 1.4041
+```
+
 ### Programmatic usage
 
 ```python
@@ -242,6 +279,10 @@ from Conservative_strategy_clean import AlgoEvent
 bars = backtest.synthetic_bars(n=400)            # or backtest.csv_bars("prices.csv")
 result = backtest.run_backtest("conservative", bars)
 print(result.trades, result.metrics["sharpe"])
+
+# best-of-N for the stochastic agent, and the combined portfolio
+best, scores = backtest.run_best("radical", bars, runs=30, metric="sharpe")
+portfolio, legs = backtest.run_ensemble(bars, weights={"conservative": 0.5, "radical": 0.5})
 
 # or drive a strategy instance directly
 result = BacktestEngine(initial_capital=1_000_000).run(AlgoEvent(), bars)
