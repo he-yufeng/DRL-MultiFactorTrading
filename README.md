@@ -205,9 +205,36 @@ DRL-MultiFactorTrading/
 pip install -r requirements.txt
 ```
 
-### Usage
+### Run a backtest locally (no AlgoGene account)
 
-Both strategies are designed for the AlgoAPI backtesting framework:
+The strategies were written for AlgoGene's `AlgoEvent` API, but you don't need an
+AlgoGene account to run them. `backtest.py` drives the **unchanged** strategy code
+with a local simulated broker — it feeds OHLCV bars into `on_marketdatafeed` and
+fills the orders the strategy sends, so the decision logic is identical to the
+platform version while the data feed and order execution are replaced:
+
+```bash
+python backtest.py                       # Conservative on synthetic data
+python backtest.py --strategy radical    # Radical (numpy Double-DQN)
+python backtest.py --csv prices.csv      # your own OHLCV CSV (close/high/low/volume)
+python backtest.py --ticker 0700.HK      # real data via yfinance (pip install yfinance)
+```
+
+It prints the trade count plus a full metrics bundle (return, Sharpe, Sortino,
+max drawdown, Calmar, ...) computed by `strategy_metrics`. You can also call it
+programmatically:
+
+```python
+import backtest
+
+bars = backtest.synthetic_bars(n=400)            # or backtest.csv_bars("prices.csv")
+result = backtest.run_backtest("conservative", bars)
+print(result.trades, result.metrics["sharpe"])
+```
+
+### Usage on AlgoGene
+
+Both strategies also run unchanged on the AlgoGene `AlgoEvent` framework:
 
 ```python
 from Radical_strategy_clean import AlgoEvent

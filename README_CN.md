@@ -145,9 +145,33 @@ DRL-MultiFactorTrading/
 pip install numpy
 ```
 
-### 使用方法
+### 本地回测（无需 AlgoGene 账号）
 
-两套策略都基于 AlgoAPI 回测框架：
+策略是为 AlgoGene 的 `AlgoEvent` API 写的，但不用 AlgoGene 账号也能跑。`backtest.py`
+用一个本地模拟 broker 驱动**原封不动的策略代码**——把 OHLCV bar 喂进 `on_marketdatafeed`、
+把策略下的单成交掉，决策逻辑与平台版完全一致，只替换了数据源和下单执行：
+
+```bash
+python backtest.py                       # Conservative,合成数据
+python backtest.py --strategy radical    # Radical（numpy Double-DQN）
+python backtest.py --csv prices.csv      # 自己的 OHLCV CSV（close/high/low/volume）
+python backtest.py --ticker 0700.HK      # yfinance 真实数据（pip install yfinance）
+```
+
+会打印交易笔数和一整套指标（收益、Sharpe、Sortino、最大回撤、Calmar……，由
+`strategy_metrics` 计算）。也可编程调用：
+
+```python
+import backtest
+
+bars = backtest.synthetic_bars(n=400)            # 或 backtest.csv_bars("prices.csv")
+result = backtest.run_backtest("conservative", bars)
+print(result.trades, result.metrics["sharpe"])
+```
+
+### 在 AlgoGene 上使用
+
+两套策略也可原样跑在 AlgoGene 的 `AlgoEvent` 框架上：
 
 ```python
 from Radical_strategy_clean import AlgoEvent
