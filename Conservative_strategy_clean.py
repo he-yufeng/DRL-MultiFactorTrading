@@ -6,7 +6,7 @@ Architecture: Multi-Factor Model (Trend 35%, Momentum 25%, RSI 20%, MACD 15%, Bo
 References: Fama & French (1993), Kim et al. (2016), Ang & Timmermann (2012)
 """
 
-from AlgoAPI import AlgoAPIUtil, AlgoAPI_Backtest
+from engine import Order
 import numpy as np
 
 class AlgoEvent:
@@ -47,9 +47,9 @@ class AlgoEvent:
         self.last_trade_time = None
         
     def start(self, mEvt):
+        # Record the instrument to trade. The backtest engine attaches itself as
+        # ``self.evt`` and drives ``on_marketdatafeed`` bar by bar.
         self.instrument = mEvt['subscribeList'][0]
-        self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
-        self.evt.start()
     
     # ==================== Technical Indicators ====================
     
@@ -295,7 +295,7 @@ class AlgoEvent:
                 self.last_trade_time = self.bar_count
     
     def open_position(self, direction: int, size: int) -> None:
-        order = AlgoAPIUtil.OrderObject()
+        order = Order()
         order.instrument = self.instrument
         order.orderRef = f"C_{self.bar_count}"
         order.volume = int(size)
@@ -315,7 +315,7 @@ class AlgoEvent:
     def close_position(self) -> None:
         if self.position == 0:
             return
-        order = AlgoAPIUtil.OrderObject()
+        order = Order()
         order.instrument = self.instrument
         order.orderRef = f"CX_{self.bar_count}"
         order.volume = int(abs(self.position))

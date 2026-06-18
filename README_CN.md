@@ -145,40 +145,43 @@ DRL-MultiFactorTrading/
 pip install numpy
 ```
 
-### 本地回测（无需 AlgoGene 账号）
+### 本地回测
 
-策略是为 AlgoGene 的 `AlgoEvent` API 写的，但不用 AlgoGene 账号也能跑。`backtest.py`
-用一个本地模拟 broker 驱动**原封不动的策略代码**——把 OHLCV bar 喂进 `on_marketdatafeed`、
-把策略下的单成交掉，决策逻辑与平台版完全一致，只替换了数据源和下单执行：
+两套策略都是事件驱动、自包含的：实现 `on_marketdatafeed(...)`、发出订单，由内置的
+`engine.BacktestEngine` 充当 broker 和事件循环。不需要任何交易账号或第三方平台——喂
+OHLCV bar 即可：
 
 ```bash
 python backtest.py                       # Conservative,合成数据
 python backtest.py --strategy radical    # Radical（numpy Double-DQN）
 python backtest.py --csv prices.csv      # 自己的 OHLCV CSV（close/high/low/volume）
-python backtest.py --ticker 0700.HK      # yfinance 真实数据（pip install yfinance）
+python backtest.py --ticker 1810.HK      # yfinance 真实数据（pip install yfinance）
 ```
 
 会打印交易笔数和一整套指标（收益、Sharpe、Sortino、最大回撤、Calmar……，由
-`strategy_metrics` 计算）。也可编程调用：
+`strategy_metrics` 计算）。小米（1810.HK）两年日线的示例：
+
+```
+Strategy : conservative
+Trades   : 57
+total_return            : 0.2606
+sharpe                  : 1.7380
+max_drawdown            : 0.0585
+```
+
+### 编程调用
 
 ```python
 import backtest
+from engine import BacktestEngine
+from Conservative_strategy_clean import AlgoEvent
 
 bars = backtest.synthetic_bars(n=400)            # 或 backtest.csv_bars("prices.csv")
 result = backtest.run_backtest("conservative", bars)
 print(result.trades, result.metrics["sharpe"])
-```
 
-### 在 AlgoGene 上使用
-
-两套策略也可原样跑在 AlgoGene 的 `AlgoEvent` 框架上：
-
-```python
-from Radical_strategy_clean import AlgoEvent
-
-strategy = AlgoEvent()
-mEvt = {'subscribeList': ['01810HK']}  # 港股小米
-strategy.start(mEvt)
+# 也可直接驱动一个策略实例
+result = BacktestEngine(initial_capital=1_000_000).run(AlgoEvent(), bars)
 ```
 
 ### 策略参数

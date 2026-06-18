@@ -1,13 +1,8 @@
-"""Self-contained, pip-installable backtest for the AlgoGene strategies.
+"""Run the trading strategies offline with the bundled backtest engine.
 
-The ``Conservative_strategy_clean`` and ``Radical_strategy_clean`` modules are
-written against AlgoGene's ``AlgoEvent`` API, so they can only run on that
-platform. This harness drives the *unchanged* strategy code with a local
-simulated broker: it feeds historical OHLCV bars into ``on_marketdatafeed`` and
-fills the orders the strategy sends, tracking an equity curve. The decision
-logic is identical to the platform version — only the data feed and order
-execution are replaced — so anyone can ``pip install -r requirements.txt`` and
-actually run and evaluate the strategies offline.
+The Conservative and Radical strategies are event-driven and depend only on the
+local :mod:`engine` (no trading account or third-party platform). This module
+adds data sources and a small CLI on top of :class:`engine.BacktestEngine`.
 
 Usage::
 
@@ -23,8 +18,6 @@ import argparse
 import csv
 import importlib
 import sys
-import types
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -33,7 +26,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from strategy_metrics import summarize_equity_curve  # noqa: E402
+from engine import Bar, BacktestEngine, BacktestResult  # noqa: E402
 
 STRATEGY_MODULES = {
     "conservative": "Conservative_strategy_clean",
@@ -41,58 +34,10 @@ STRATEGY_MODULES = {
 }
 
 
-class _Order:
-    """Stand-in for ``AlgoAPIUtil.OrderObject`` (a plain attribute bag)."""
-
-    instrument: str = ""
-    orderRef: str = ""
-    volume: int = 0
-    openclose: str = "open"
-    buysell: int = 0
-    ordertype: int = 0
-
-
-class _Broker:
-    """Captures the orders a strategy sends so the harness can fill them."""
-
-    def __init__(self) -> None:
-        self.pending: list[_Order] = []
-
-    def sendOrder(self, order: _Order) -> None:
-        self.pending.append(order)
-
-    def start(self) -> None:  # the strategy may call evt.start()
-        pass
-
-
-def _install_algoapi_stub(broker: _Broker) -> None:
-    """Inject a fake ``AlgoAPI`` package so the strategy modules import."""
-    sys.modules["AlgoAPI"] = types.SimpleNamespace(
-        AlgoAPIUtil=types.SimpleNamespace(OrderObject=_Order),
-        AlgoAPI_Backtest=types.SimpleNamespace(AlgoEvtHandler=lambda *a, **k: broker),
-    )
-
-
-def load_strategy(module_name: str, broker: _Broker):
-    """Import a strategy module against the stubbed AlgoAPI and return it."""
-    _install_algoapi_stub(broker)
-    sys.modules.pop(module_name, None)
-    return importlib.import_module(module_name)
-
-
-@dataclass
-class Bar:
-    price: float
-    high: float
-    low: float
-    volume: float
-
-
-@dataclass
-class BacktestResult:
-    equity: list[float] = field(default_factory=list)
-    trades: int = 0
-    metrics: dict[str, float] = field(default_factory=dict)
+def load_strategy(strategy: str):
+    """Import a strategy module and return its ``AlgoEvent`` class."""
+    module = importlib.import_module(STRATEGY_MODULES[strategy])
+    return module.AlgoEvent
 
 
 def run_backtest(
@@ -101,36 +46,9 @@ def run_backtest(
     *,
     initial_capital: float = 100_000_000.0,
 ) -> BacktestResult:
-    """Run ``strategy`` ('conservative'|'radical') over ``bars`` with a local broker."""
-    module_name = STRATEGY_MODULES[strategy]
-    broker = _Broker()
-    module = load_strategy(module_name, broker)
-
-    algo = module.AlgoEvent()
-    algo.instrument = "BACKTEST"
-    algo.evt = broker
-
-    cash = initial_capital
-    holding = 0  # signed share count
-    result = BacktestResult()
-
-    for bar in bars:
-        md = types.SimpleNamespace(
-            lastPrice=bar.price, high=bar.high, low=bar.low, volume=bar.volume
-        )
-        ab = types.SimpleNamespace(availableBalance=cash)
-        broker.pending.clear()
-        algo.on_marketdatafeed(md, ab)
-        for order in broker.pending:
-            signed = int(order.volume) * (1 if order.buysell > 0 else -1)
-            cash -= signed * bar.price  # buy spends cash, sell returns it
-            holding += signed
-            result.trades += 1
-        result.equity.append(cash + holding * bar.price)
-
-    if len(result.equity) > 2:
-        result.metrics = summarize_equity_curve(result.equity)
-    return result
+    """Run ``strategy`` ('conservative'|'radical') over ``bars``."""
+    algo = load_strategy(strategy)()
+    return BacktestEngine(initial_capital).run(algo, bars)
 
 
 def synthetic_bars(n: int = 400, seed: int = 7) -> list[Bar]:
@@ -185,7 +103,7 @@ def yfinance_bars(ticker: str, period: str = "2y", interval: str = "1d") -> list
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Backtest the AlgoGene strategies offline.")
+    parser = argparse.ArgumentParser(description="Backtest the strategies offline.")
     parser.add_argument("--strategy", choices=sorted(STRATEGY_MODULES), default="conservative")
     parser.add_argument("--csv", help="Path to an OHLCV CSV (close/high/low/volume columns).")
     parser.add_argument("--ticker", help="Fetch real data via yfinance, e.g. 0700.HK.")
@@ -209,9 +127,8 @@ def main(argv: list[str] | None = None) -> None:
     print(f"Strategy : {args.strategy}")
     print(f"Data     : {source} ({len(bars)} bars)")
     print(f"Trades   : {result.trades}")
-    if result.metrics:
-        for key, value in result.metrics.items():
-            print(f"{key:24s}: {value:.4f}")
+    for key, value in result.metrics.items():
+        print(f"{key:24s}: {value:.4f}")
 
 
 if __name__ == "__main__":

@@ -205,48 +205,46 @@ DRL-MultiFactorTrading/
 pip install -r requirements.txt
 ```
 
-### Run a backtest locally (no AlgoGene account)
+### Run a backtest
 
-The strategies were written for AlgoGene's `AlgoEvent` API, but you don't need an
-AlgoGene account to run them. `backtest.py` drives the **unchanged** strategy code
-with a local simulated broker — it feeds OHLCV bars into `on_marketdatafeed` and
-fills the orders the strategy sends, so the decision logic is identical to the
-platform version while the data feed and order execution are replaced:
+The strategies are event-driven and self-contained: they implement
+`on_marketdatafeed(...)` and emit orders, and the bundled `engine.BacktestEngine`
+acts as the broker and event loop. No trading account or third-party platform is
+needed — just feed it OHLCV bars:
 
 ```bash
 python backtest.py                       # Conservative on synthetic data
 python backtest.py --strategy radical    # Radical (numpy Double-DQN)
 python backtest.py --csv prices.csv      # your own OHLCV CSV (close/high/low/volume)
-python backtest.py --ticker 0700.HK      # real data via yfinance (pip install yfinance)
+python backtest.py --ticker 1810.HK      # real data via yfinance (pip install yfinance)
 ```
 
 It prints the trade count plus a full metrics bundle (return, Sharpe, Sortino,
-max drawdown, Calmar, ...) computed by `strategy_metrics`. You can also call it
-programmatically:
+max drawdown, Calmar, ...) computed by `strategy_metrics`. Example on Xiaomi
+(1810.HK) daily bars over two years:
+
+```
+Strategy : conservative
+Trades   : 57
+total_return            : 0.2606
+sharpe                  : 1.7380
+max_drawdown            : 0.0585
+```
+
+### Programmatic usage
 
 ```python
 import backtest
+from engine import BacktestEngine
+from Conservative_strategy_clean import AlgoEvent
 
+# convenience helper
 bars = backtest.synthetic_bars(n=400)            # or backtest.csv_bars("prices.csv")
 result = backtest.run_backtest("conservative", bars)
 print(result.trades, result.metrics["sharpe"])
-```
 
-### Usage on AlgoGene
-
-Both strategies also run unchanged on the AlgoGene `AlgoEvent` framework:
-
-```python
-from Radical_strategy_clean import AlgoEvent
-
-# Initialize strategy
-strategy = AlgoEvent()
-
-# Configure with market event
-mEvt = {
-    'subscribeList': ['01810HK']  # Hong Kong Xiaomi stock
-}
-strategy.start(mEvt)
+# or drive a strategy instance directly
+result = BacktestEngine(initial_capital=1_000_000).run(AlgoEvent(), bars)
 ```
 
 ### Strategy Parameters

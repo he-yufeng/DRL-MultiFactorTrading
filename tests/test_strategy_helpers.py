@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-import types
 from pathlib import Path
 
 import numpy as np
@@ -12,24 +11,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-class DummyOrder:
-    pass
-
-
-class DummyBacktest:
-    class AlgoEvtHandler:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def start(self):
-            pass
-
-
 def _load_strategy(module_name: str):
-    sys.modules["AlgoAPI"] = types.SimpleNamespace(
-        AlgoAPIUtil=types.SimpleNamespace(OrderObject=DummyOrder),
-        AlgoAPI_Backtest=DummyBacktest,
-    )
+    # The strategies are self-contained (they import the local ``engine``), so
+    # they load without any trading-platform stub.
     sys.modules.pop(module_name, None)
     return importlib.import_module(module_name)
 

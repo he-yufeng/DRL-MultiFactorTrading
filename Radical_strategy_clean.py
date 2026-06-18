@@ -6,7 +6,7 @@ Architecture: Double DQN (4-layer: 24->128->64->32->9) + Transformer Attention +
 References: Mnih et al. (2015), Van Hasselt et al. (2016), Vaswani et al. (2017)
 """
 
-from AlgoAPI import AlgoAPIUtil, AlgoAPI_Backtest
+from engine import Order
 import numpy as np
 import random
 
@@ -73,9 +73,9 @@ class AlgoEvent:
         self.last_action = None
         
     def start(self, mEvt):
+        # Record the instrument to trade. The backtest engine attaches itself as
+        # ``self.evt`` and drives ``on_marketdatafeed`` bar by bar.
         self.instrument = mEvt['subscribeList'][0]
-        self.evt = AlgoAPI_Backtest.AlgoEvtHandler(self, mEvt)
-        self.evt.start()
     
     # ==================== Neural Network ====================
     
@@ -436,7 +436,7 @@ class AlgoEvent:
             return
         direction = 1 if direction > 0 else -1
         
-        order = AlgoAPIUtil.OrderObject()
+        order = Order()
         order.instrument = self.instrument
         order.orderRef = f"R_{self.bar_count}"
         order.volume = int(size)
@@ -459,7 +459,7 @@ class AlgoEvent:
         """Close the current position and reset tracking state."""
         if self.position == 0:
             return
-        order = AlgoAPIUtil.OrderObject()
+        order = Order()
         order.instrument = self.instrument
         order.orderRef = f"RX_{self.bar_count}"
         order.volume = int(abs(self.position))
