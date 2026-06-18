@@ -8,6 +8,7 @@ from strategy_metrics import (
     annualized_volatility,
     benchmark_comparison,
     calmar_ratio,
+    conditional_value_at_risk,
     downside_deviation,
     drawdown_analysis,
     max_drawdown,
@@ -15,6 +16,7 @@ from strategy_metrics import (
     sharpe_ratio,
     summarize_equity_curve,
     summarize_vs_benchmark,
+    value_at_risk,
 )
 
 
@@ -175,3 +177,30 @@ def test_summarize_vs_benchmark_bundles_sections() -> None:
     assert summary["strategy"]["total_return"] > summary["benchmark"]["total_return"]
     assert summary["relative"]["win_rate"] > 0
     assert summary["relative"]["excess_annualized_return"] > 0
+
+
+def test_value_at_risk_reports_positive_tail_loss() -> None:
+    returns = [-0.08, -0.04, -0.01, 0.0, 0.01, 0.01, 0.02, 0.02, 0.03, 0.05]
+    var = value_at_risk(returns, confidence=0.90)
+    # the 10th-percentile return is a loss, surfaced as a positive fraction
+    assert var > 0.0
+    assert var == pytest.approx(max(-float(np.percentile(returns, 10.0)), 0.0))
+
+
+def test_cvar_is_at_least_as_severe_as_var() -> None:
+    returns = [-0.08, -0.04, -0.01, 0.0, 0.01, 0.01, 0.02, 0.02, 0.03, 0.05]
+    var = value_at_risk(returns, confidence=0.90)
+    cvar = conditional_value_at_risk(returns, confidence=0.90)
+    # expected shortfall averages the worst tail, so it never reports milder than VaR
+    assert cvar >= var > 0.0
+
+
+def test_var_and_cvar_are_zero_when_no_tail_loss() -> None:
+    gains = [0.01, 0.02, 0.03, 0.04, 0.05]
+    assert value_at_risk(gains) == 0.0
+    assert conditional_value_at_risk(gains) == 0.0
+
+
+def test_value_at_risk_rejects_out_of_range_confidence() -> None:
+    with pytest.raises(ValueError):
+        value_at_risk([0.01, -0.02], confidence=1.5)

@@ -106,6 +106,41 @@ def downside_deviation(
     return float(math.sqrt(np.mean(np.square(downside))) * math.sqrt(periods_per_year))
 
 
+def value_at_risk(returns: Sequence[float], confidence: float = 0.95) -> float:
+    """Historical Value at Risk as a positive loss fraction.
+
+    At ``confidence=0.95`` this is the 5th-percentile period return, sign-flipped
+    so a larger number means a worse tail loss (and 0.0 when that percentile is
+    still a gain). Complements the volatility/drawdown metrics with a tail view.
+    """
+    if not 0.0 < confidence < 1.0:
+        raise ValueError("confidence must be between 0 and 1")
+    values = np.asarray(returns, dtype=float)
+    if values.size < 2:
+        return 0.0
+    cutoff = float(np.percentile(values, (1.0 - confidence) * 100.0))
+    return max(-cutoff, 0.0)
+
+
+def conditional_value_at_risk(returns: Sequence[float], confidence: float = 0.95) -> float:
+    """Conditional VaR (expected shortfall) as a positive loss fraction.
+
+    The average return across the worst ``1 - confidence`` tail, sign-flipped.
+    Captures how bad losses get *beyond* the VaR threshold, which plain VaR hides,
+    so it is always at least as large as :func:`value_at_risk`.
+    """
+    if not 0.0 < confidence < 1.0:
+        raise ValueError("confidence must be between 0 and 1")
+    values = np.asarray(returns, dtype=float)
+    if values.size < 2:
+        return 0.0
+    cutoff = np.percentile(values, (1.0 - confidence) * 100.0)
+    tail = values[values <= cutoff]
+    if tail.size == 0:
+        return 0.0
+    return max(float(-np.mean(tail)), 0.0)
+
+
 def sharpe_ratio(
     returns: Sequence[float],
     risk_free_rate: float = 0.0,
