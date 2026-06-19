@@ -22,9 +22,6 @@
 ### 腾讯控股 (00700.HK) - 高收益高波动
 ![Radical Strategy - Tencent](radical-00700HK.png)
 
-### 美团 (03690.HK) - 成长股表现
-![Radical Strategy - Meituan](radical-03690HK.png)
-
 ## 策略评估工具
 
 仓库现在包含一组纯 Python 绩效指标 helper，可在展示回测结果前统一计算核心指标：

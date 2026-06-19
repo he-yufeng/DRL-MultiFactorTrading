@@ -22,9 +22,6 @@
 ### Tencent Holdings (00700.HK) - High Returns, Higher Volatility
 ![Radical Strategy - Tencent](radical-00700HK.png)
 
-### Meituan (03690.HK) - Growth Stock Performance
-![Radical Strategy - Meituan](radical-03690HK.png)
-
 ## Evaluation Helpers
 
 The repository includes pure Python helpers for reviewing an equity curve before showing results:
@@ -192,8 +189,7 @@ DRL-MultiFactorTrading/
 │       └── ci.yml                   # CI pipeline (Python 3.9-3.12)
 │
 ├── radical-01810HK.png             # Performance: Xiaomi (01810.HK)
-├── radical-00700HK.png             # Performance: Tencent (00700.HK)
-└── radical-03690HK.png             # Performance: Meituan (03690.HK)
+└── radical-00700HK.png             # Performance: Tencent (00700.HK)
 ```
 
 ## 🚀 Quick Start
