@@ -2,8 +2,9 @@
 
 # DRL-MultiFactorTrading
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![NumPy](https://img.shields.io/badge/NumPy-1.20+-green.svg)](https://numpy.org/)
+[![CI](https://github.com/he-yufeng/DRL-MultiFactorTrading/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/DRL-MultiFactorTrading/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+[![NumPy](https://img.shields.io/badge/NumPy-1.21+-green.svg)](https://numpy.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **深度强化学习量化交易策略：Double DQN + Transformer 注意力机制 + Fama-French 多因子模型，配合自适应风险管理和波动率目标控制。**

@@ -2,7 +2,7 @@
 
 # DRL-MultiFactorTrading
 
-[![CI](https://github.com/universeplayer/DRL-MultiFactorTrading/actions/workflows/ci.yml/badge.svg)](https://github.com/universeplayer/DRL-MultiFactorTrading/actions/workflows/ci.yml)
+[![CI](https://github.com/he-yufeng/DRL-MultiFactorTrading/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/DRL-MultiFactorTrading/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![NumPy](https://img.shields.io/badge/NumPy-1.21+-green.svg)](https://numpy.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
