@@ -383,6 +383,14 @@ if drawdown > 0.10:
 - Always conduct thorough backtesting before live trading
 - Consult with a qualified financial advisor
 
+## 🔗 Related Projects
+
+DRL-MultiFactorTrading is one of my research projects. A few other things I've built around agents and LLM systems:
+
+- **[CoreCoder](https://github.com/he-yufeng/CoreCoder)** — want to understand how a coding agent really works? Read the whole ~1k-line engine end to end, not a black box.
+- **[RepoWiki](https://github.com/he-yufeng/RepoWiki)** — dropped into an unfamiliar codebase? It gives you a guided wiki and a where-to-start reading path, a self-hostable DeepWiki alternative.
+- **[FindJobs-Agent](https://github.com/he-yufeng/FindJobs-Agent)** — stop sifting job boards by hand: it ranks postings against your resume and runs mock interviews.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

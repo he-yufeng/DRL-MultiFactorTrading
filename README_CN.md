@@ -275,6 +275,14 @@ if drawdown > 0.10:
 - 实盘前请务必充分回测
 - 请咨询专业的财务顾问
 
+## 🔗 相关项目
+
+DRL-MultiFactorTrading 是我做的研究项目之一，下面几个也是我做的 agent / LLM 系统方向的工具：
+
+- **[CoreCoder](https://github.com/he-yufeng/CoreCoder)** — 想搞懂一个 coding agent 到底怎么运作？把整套约 1000 行引擎从头读到尾，而不是当黑箱。
+- **[RepoWiki](https://github.com/he-yufeng/RepoWiki)** — 被丢进一个陌生代码库？它给你一份带「从哪读起」路径的 wiki，一个可自托管的 DeepWiki 替代。
+- **[FindJobs-Agent](https://github.com/he-yufeng/FindJobs-Agent)** — 别再手动刷招聘网站：它按你的简历给岗位排序，还能跑模拟面试。
+
 ## 许可证
 
 MIT License - 详见 [LICENSE](LICENSE)
